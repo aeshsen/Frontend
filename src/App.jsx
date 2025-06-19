@@ -13,14 +13,15 @@ function App() {
 
 
 
-  const fetchVideos = async () => {
-    try {
-      const res = await axios.get('https://my-backend-snq5.onrender.com/videos');
-      setVideos(res.data);
-    } catch (err) {
-      console.error('Error fetching videos:', err);
-    }
-  };
+const fetchVideos = async () => {
+  try {
+    const res = await axios.get('https://my-backend-snq5.onrender.com/videos');
+    setVideos(res.data);
+  } catch (err) {
+    console.error('❌ Error fetching videos:', err?.response?.data || err?.message || err);
+    alert("Failed to fetch videos from backend. Check your backend or Render logs.");
+  }
+};
 
   useEffect(() => {
     fetchVideos();
@@ -37,40 +38,42 @@ function App() {
   };
 
   const uploadSingleFile = async (file) => {
-    const formData = new FormData();
-    formData.append('videos', file);
+  const formData = new FormData();
+  formData.append('videos', file);
 
-    let progress = 0;
-    setFileProgress((prev) => ({ ...prev, [file.name]: progress }));
+  let progress = 0;
+  setFileProgress((prev) => ({ ...prev, [file.name]: progress }));
 
-    return new Promise((resolve) => {
-      const interval = setInterval(() => {
-        progress += 2;
-        if (progress > 98) progress = 98;
-        setFileProgress((prev) => ({ ...prev, [file.name]: progress }));
-      }, 100);
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      progress += 2;
+      if (progress > 98) progress = 98;
+      setFileProgress((prev) => ({ ...prev, [file.name]: progress }));
+    }, 100);
 
-      axios
-        .post('https://my-backend-snq5.onrender.com/upload', formData)
-        .then(() => {
-          clearInterval(interval);
-          setFileProgress((prev) => ({ ...prev, [file.name]: 100 }));
-          setTimeout(() => {
-            setFileProgress((prev) => {
-              const newProgress = { ...prev };
-              delete newProgress[file.name];
-              return newProgress;
-            });
-            resolve();
-          }, 1000);
-        })
-        .catch(() => {
-          clearInterval(interval);
-          setFileProgress((prev) => ({ ...prev, [file.name]: 0 }));
+    axios
+      .post('https://my-backend-snq5.onrender.com/upload', formData)
+      .then(() => {
+        clearInterval(interval);
+        setFileProgress((prev) => ({ ...prev, [file.name]: 100 }));
+        setTimeout(() => {
+          setFileProgress((prev) => {
+            const newProgress = { ...prev };
+            delete newProgress[file.name];
+            return newProgress;
+          });
           resolve();
-        });
-    });
-  };
+        }, 1000);
+      })
+      .catch((err) => {
+        clearInterval(interval);
+        console.error("❌ Upload failed:", err?.response?.data || err?.message || err);
+        alert("Upload failed. Check backend console or video format.");
+        setFileProgress((prev) => ({ ...prev, [file.name]: 0 }));
+        resolve();
+      });
+  });
+};
 
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
